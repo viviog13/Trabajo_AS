@@ -1,5 +1,5 @@
 # base image
-FROM python:3.6.3
+FROM python:3.6.3-alpine
 
 # install environment dependencies
 RUN apt-get update -yqq  && \
