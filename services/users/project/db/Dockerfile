@@ -1,5 +1,5 @@
-# base image
+# imagen base
 FROM postgres:10.4-alpine
 
-# run create.sql on init
+# ejecuta create.sql al iniciar
 ADD create.sql /docker-entrypoint-initdb.d

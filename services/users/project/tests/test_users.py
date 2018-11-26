@@ -8,11 +8,16 @@ import unittest
 
 from project.tests.base import BaseTestCase
 
+
 def add_book(titulo, autor, añodepublicacion, editorial, generoliterario):
-    user = User(titulo=titulo, autor=autor, añodepublicacion=añodepublicacion, editorial=editorial, generoliterario=generoliterario)
+    user = User(
+        titulo=titulo, autor=autor, añodepublicacion=añodepublicacion,
+        editorial=editorial, generoliterario=generoliterario
+        )
     db.session.add(user)
     db.session.commit()
     return user
+
 
 class TestUserService(BaseTestCase):
     """Prueba para el servicio users."""
@@ -26,7 +31,8 @@ class TestUserService(BaseTestCase):
         self.assertIn('success', data['status'])
 
     def test_add_user(self):
-        """Asegurando de que se pueda agregar un nuevo usuario a la base de datos."""
+        """Asegurando de que se pueda agregar un nuevo
+        usuario a la base de datos."""
         with self.client:
             response = self.client.post(
                 '/users',
@@ -45,7 +51,8 @@ class TestUserService(BaseTestCase):
             self.assertIn('satisfactorio', data['estado'])
 
     def test_add_user_invalid_json(self):
-        """Asegurando de que se arroje un error si el objeto json esta vacio."""
+        """Asegurando de que se arroje un error
+        si el objeto json esta vacio."""
         with self.client:
             response = self.client.post(
                 '/users',
@@ -73,7 +80,6 @@ class TestUserService(BaseTestCase):
             self.assertIn('Datos no validos.', data['mensaje'])
             self.assertIn('fallo', data['estado'])
 
-
     def test_add_user_duplicate_book(self):
         """Asegurando de que se produce un error si el libro ya existe."""
         with self.client:
@@ -85,7 +91,7 @@ class TestUserService(BaseTestCase):
                     'añodepublicacion': '1990',
                     'editorial': 'Ni idea',
                     'generoliterario': 'Accion'
-                  
+
                 }),
                 content_type='application/json',
             )
@@ -107,10 +113,11 @@ class TestUserService(BaseTestCase):
             self.assertIn('fallo', data['estado'])
 
     def test_single_user(self):
-        """Asegurando de que el usuario individual se comporte correctamente."""
-        #user = User(username='abel', email='abel.huanca@upeu.edu.pe')
-        #db.session.add(user)
-        #db.session.commit()
+        """Asegurando de que el usuario individual
+        se comporte correctamente."""
+        # user = User(username='abel', email='abel.huanca@upeu.edu.pe')
+        # db.session.add(user)
+        # db.session.commit()
         user = add_book('Mil caeran', 'Susi', '1990', 'Ni idea', 'Accion')
         with self.client:
             response = self.client.get(f'/users/{user.id}')
@@ -154,13 +161,55 @@ class TestUserService(BaseTestCase):
             self.assertIn('Susi', data['data']['users'][0]['autor'])
             self.assertIn('1990', data['data']['users'][0]['añodepublicacion'])
             self.assertIn('Ni idea', data['data']['users'][0]['editorial'])
-            self.assertIn('Accion', data['data']['users'][0]['generoliterario'])
+            self.assertIn(
+                'Accion', data['data']['users'][0]['generoliterario']
+                )
             self.assertIn('La casa verde', data['data']['users'][1]['titulo'])
             self.assertIn('Mario', data['data']['users'][1]['autor'])
             self.assertIn('1966', data['data']['users'][1]['añodepublicacion'])
             self.assertIn('Six Barral', data['data']['users'][1]['editorial'])
-            self.assertIn('Ficcion', data['data']['users'][1]['generoliterario'])
+            self.assertIn(
+                'Ficcion', data['data']['users'][1]['generoliterario']
+                )
             self.assertIn('satisfactorio', data['estado'])
+
+    def test_main_no_users(self):
+            """Ensure the main route behaves correctly when no users have been
+            added to the database."""
+            response = self.client.get('/')
+            self.assertEqual(response.status_code, 200)
+            self.assertIn(b'LIBRITOS', response.data)
+            self.assertIn(b'<p>No users!</p>', response.data)
+
+    def test_main_with_users(self):
+            """Ensure the main route behaves correctly when users have been
+            added to the database."""
+            add_book('Mil caeran', 'Susi', '1990', 'Ni idea', 'Accion')
+            add_book('La casa verde', 'Mario', '1966', 'Six Barral', 'Ficcion')
+            with self.client:
+                response = self.client.get('/')
+                self.assertEqual(response.status_code, 200)
+                self.assertIn(b'LIBRITOS', response.data)
+                self.assertNotIn(b'<p>No users!</p>', response.data)
+                self.assertIn(b'Mil caeran', response.data)
+                self.assertIn(b'La casa verde', response.data)
+
+    def test_main_add_user(self):
+        """Ensure a new user can be added to the database."""
+        with self.client:
+            response = self.client.post(
+                '/',
+                data=dict(
+                    titulo='Mil caeran', autor='Susi', añodepublicacion='1990',
+                    editorial='Ni idea', generoliterario='Accion'
+                    ),
+                follow_redirects=True
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertIn(b'LIBRITOS', response.data)
+            self.assertNotIn(b'<p>No users!</p>', response.data)
+            self.assertIn(b'Mil caeran', response.data)
+
 
 if __name__ == '__main__':
     unittest.main()

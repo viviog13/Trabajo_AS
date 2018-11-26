@@ -10,15 +10,11 @@ users_blueprint = Blueprint('users', __name__, template_folder='./templates')
 
 @users_blueprint.route('/users/ping', methods=['GET'])
 def ping_pong():
-	return jsonify({
-		'status': 'success',
-		'message': 'pong'
-	})
+    return jsonify({
+        'status': 'success',
+        'message': 'pong'
+    })
 
-
-@users_blueprint.route('/', methods=['GET'])
-def index():
-    return render_template('index.html')
 
 @users_blueprint.route('/users', methods=['POST'])
 def add_user():
@@ -37,7 +33,10 @@ def add_user():
     try:
         user = User.query.filter_by(autor=autor).first()
         if not user:
-            db.session.add(User(titulo=titulo, autor=autor, añodepublicacion=añodepublicacion, editorial=editorial, generoliterario=generoliterario))
+            db.session.add(User(
+                titulo=titulo, autor=autor, añodepublicacion=añodepublicacion,
+                editorial=editorial, generoliterario=generoliterario
+                ))
             db.session.commit()
             response_object['estado'] = 'satisfactorio'
             response_object['mensaje'] = f'{titulo} ha sido agregado!'
@@ -48,6 +47,7 @@ def add_user():
     except exc.IntegrityError as e:
         db.session.rollback()
         return jsonify(response_object), 400
+
 
 @users_blueprint.route('/users/<user_id>', methods=['GET'])
 def get_single_user(user_id):
@@ -71,20 +71,38 @@ def get_single_user(user_id):
                     'añodepublicacion': user.añodepublicacion,
                     'editorial': user.editorial,
                     'generoliterario': user.generoliterario,
-                    'active':user.active
+                    'active': user.active
                 }
             }
             return jsonify(response_object), 200
     except ValueError:
-    	return jsonify(response_object), 404
+        return jsonify(response_object), 404
+
 
 @users_blueprint.route('/users', methods=['GET'])
 def get_all_users():
-	"""Obteniendo todos los usuarios"""
-	response_object = {
-	'estado': 'satisfactorio',
-	'data': {
-		'users': [user.to_json() for user in User.query.all()]
-		}
-	}
-	return jsonify(response_object), 200
+    """Obteniendo todos los usuarios"""
+    response_object = {
+        'estado': 'satisfactorio',
+        'data': {
+            'users': [user.to_json() for user in User.query.all()]
+            }
+        }
+    return jsonify(response_object), 200
+
+
+@users_blueprint.route('/', methods=['GET', 'POST'])
+def index():
+    if request.method == 'POST':
+        titulo = request.form['titulo']
+        autor = request.form['autor']
+        añodepublicacion = request.form['añodepublicacion']
+        editorial = request.form['editorial']
+        generoliterario = request.form['generoliterario']
+        db.session.add(User(
+            titulo=titulo, autor=autor, añodepublicacion=añodepublicacion,
+            editorial=editorial, generoliterario=generoliterario
+            ))
+        db.session.commit()
+    users = User.query.all()
+    return render_template('index.html', users=users)
